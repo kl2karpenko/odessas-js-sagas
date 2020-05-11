@@ -1,18 +1,22 @@
 import React  from 'react';
-import { connect } from 'react-redux';
+import { connect, useDispatch } from 'react-redux';
 
 import { ListItemAvatar, Avatar, List, ListItem, Typography, ListItemText, ListItemSecondaryAction, Button } from '@material-ui/core';
 import { Work as WorkIcon } from '@material-ui/icons';
 
-function ShopsList({ list }) {
+import { PAGES } from '../../store/pages/pages-reducer'
+
+function StoresList({ list }) {
+  const dispatch = useDispatch();
+
   if (list.length === 0) return null;
 
   return (
     <div style={{ paddingTop: 30 }}>
       <Typography variant={"h4"}>All shops</Typography>
       <List>
-        {list.map(({ name }) => (
-          <ListItem>
+        {list.map(({ name, id }) => (
+          <ListItem key={id}>
             <ListItemAvatar>
               <Avatar>
                 <WorkIcon />
@@ -20,7 +24,7 @@ function ShopsList({ list }) {
             </ListItemAvatar>
             <ListItemText primary={name} />
             <ListItemSecondaryAction>
-              <Button color={"secondary"} variant={"contained"}>
+              <Button color={"secondary"} variant={"contained"} onClick={() => dispatch({ type: 'CHANGE_PAGE', page: PAGES.products })}>
                 Shop now!
               </Button>
             </ListItemSecondaryAction>
@@ -31,6 +35,6 @@ function ShopsList({ list }) {
   )
 }
 
-export default connect(({ shop } = {}) => ({
-  list: shop?.list || []
-}), {})(ShopsList);
+export default connect(({ store } = {}) => ({
+  list: store?.list || []
+}), {})(StoresList);

@@ -1,11 +1,11 @@
 import React  from 'react';
 import { connect, useDispatch } from 'react-redux';
 
-import { makeStyles, Button, Grid, Typography } from '@material-ui/core';
+import { Button, Grid, Typography } from '@material-ui/core';
 
-import ShopsList from './shops-list';
+import StoresList from './stores-list';
 
-function Shops({}) {
+function Stores() {
   const dispatch = useDispatch();
 
   return (
@@ -18,23 +18,23 @@ function Shops({}) {
        <Grid container spacing={4}>
          <Grid item>
            <Button variant="contained" color="primary" onClick={() => dispatch({
-             type: 'SHOPS_FETCH_REQUESTED'
+             type: 'STORES_FETCH_REQUESTED'
            })}>Get all shops</Button>
          </Grid>
          <Grid item>
            <Button variant="contained" color="primary" onClick={() => dispatch({
-             type: 'SHOPS_REMOVE'
+             type: 'STORES_REMOVE'
            })}>Remove all shops</Button>
          </Grid>
        </Grid>
      </Grid>
 
      <Grid item xs={12}>
-       <ShopsList />
+       <StoresList />
      </Grid>
 
    </Grid>
   );
 }
 
-export default connect(null, {})(Shops);
+export default connect(null, {})(Stores);
