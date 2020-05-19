@@ -25,6 +25,4 @@ function ProductsButton({ product, basket }) {
   );
 }
 
-export default connect(({ basket } = {}) => ({
-  basket: basket || {}
-}), {})(ProductsButton);
+export default connect(null, {})(ProductsButton);

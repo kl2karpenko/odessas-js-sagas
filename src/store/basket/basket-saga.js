@@ -1,23 +1,39 @@
-import { put, call, takeLatest, fork } from 'redux-saga/effects';
-import ProductApi from './product-api';
+import { put, call, takeLatest, fork, takeEvery, delay } from 'redux-saga/effects';
+import BasketAPI from './basket-api';
 
-const productAPI = new ProductApi();
+const basketAPI = new BasketAPI();
 
-function* fetchProductsInStore({ productId }) {
+function* createOrderBy({ order }) {
   try {
-    const stores = yield call(productAPI.getProductInStore, productId);
-    yield put({ type: "PRODUCTS_FETCH_SUCCEEDED", list: stores });
+    yield delay(20000);
+    yield call(basketAPI.createSingleOrder, { order });
+    yield put({ type: "BASKET_ORDER_SUCCEEDED", orderList: {}, successOrder: order });
   } catch (e) {
-    yield put({ type: "PRODUCTS_FETCH_FAILED", message: e.message});
+    yield put({ type: "BASKET_ORDER_FAILED", orderList: {}, failedOrder: order });
   }
 }
 
-export function* watchProductsSaga() {
-  yield takeLatest("PRODUCTS_FETCH_REQUESTED", fetchProductsInStore);
+function* createOrder({ orderList }) {
+  try {
+    yield delay(20000);
+    yield call(basketAPI.createOrder, { orderList });
+    yield put({ type: "BASKET_ORDERS_SUCCEEDED", orderList: {}, successOrders: orderList });
+  } catch (e) {
+    yield put({ type: "BASKET_ORDERS_FAILED", orderList: {}, failedOrders: orderList });
+  }
+}
+
+export function* watchCreateOrderAll() {
+  yield takeLatest("BASKET_ORDERS_REQUESTED", createOrder);
+}
+
+export function* watchCreateOrder() {
+  yield takeEvery("BASKET_ORDER_REQUESTED", createOrderBy);
 }
 
 const productsSaga = [
-  fork(watchProductsSaga)
+  fork(watchCreateOrderAll),
+  fork(watchCreateOrderAll),
 ];
 
 export default productsSaga;

@@ -14,7 +14,7 @@ function* fetchAllProducts() {
 
 function* fetchProductsInStore({ productId }) {
   try {
-    const products = yield call(productAPI.getProductInStore, productId);
+    const products = yield call(productAPI.getProductInStore, { productId });
     yield put({ type: "PRODUCT_FETCH_SUCCEEDED", list: products });
   } catch (e) {
     yield put({ type: "PRODUCT_FETCH_FAILED", message: e.message});

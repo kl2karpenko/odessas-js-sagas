@@ -6,15 +6,24 @@ import {
   Avatar,
   Typography,
   Button,
-  Grid
+  Grid,
+  LinearProgress
 } from '@material-ui/core';
 
-function BasketList({ list }) {
+function BasketList({ list, orderList }) {
   const dispatch = useDispatch();
   const goods = Object.values(list);
   const [selected, setSelected] = useState({});
 
   if (Object.keys(list).length === 0) return null;
+
+  const handleChangeAll = ({ target: { value, checked } }) => {
+    if (checked) {
+      setSelected(list)
+    } else {
+      setSelected({});
+    }
+  };
 
   const handleChange = ({ target: { value, checked } }, { id, name, img }) => {
     if (checked) {
@@ -35,49 +44,105 @@ function BasketList({ list }) {
     <div style={{ paddingTop: 30 }}>
       <Grid container spacing={4}>
         <Grid item xs={12}>
-          <Grid container spacing={2}>
-            <Grid item xs={10}>
+          <Grid container spacing={2} alignItems={"center"} alignContent={"center"}>
+            <Grid item xs={2}>
+              <Checkbox
+                id={"selectAll"}
+                checked={Object.keys(selected).length === goods.length}
+                onChange={handleChangeAll}
+                inputProps={{ 'aria-label': 'primary checkbox' }}
+              />
+            </Grid>
+            <Grid item xs={6}>
               <Typography variant={"h4"}>All your products</Typography>
             </Grid>
-            <Grid item xs={2}>
-              <Button color={"primary"} variant={"contained"} onClick={() => setSelected({})}>
-                Remove All
-              </Button>
-            </Grid>
+            {Object.keys(selected).length ? (
+              <>
+                <Grid item xs={2}>
+                  <Button color={"primary"} variant={"contained"} onClick={() => setSelected({})}>
+                    Remove All Selected
+                  </Button>
+                </Grid>
+                <Grid item xs={2}>
+                  <Button color={"primary"} variant={"contained"} onClick={() => {
+                    dispatch({
+                      type: "BASKET_ORDER_PRODUCTS_START",
+                      orderList: selected
+                    });
+                    dispatch({
+                      type: "BASKET_ORDERS_REQUESTED",
+                      orderList: selected
+                    })
+                  }}>
+                    Order All Selected
+                  </Button>
+                </Grid>
+              </>
+            ) : null}
           </Grid>
         </Grid>
-        {goods.map(({ name, img, id }) => (
-          <Grid key={id} item xs={12}>
-            <Grid container spacing={4}>
-              <Grid item>
-                <Checkbox
-                  checked={!!selected[id]}
-                  onChange={e => handleChange(e, { name, img, id })}
-                  inputProps={{ 'aria-label': 'primary checkbox' }}
-                />
-              </Grid>
-              <Grid item>
-                <Avatar alt="Remy Sharp" src={img} />
-              </Grid>
-              <Grid item xs={4}>
-                <Typography variant={"h5"}>
-                  {name}
-                </Typography>
-              </Grid>
-              <Grid item xs={4}>
-                <Button color={"primary"} variant={"contained"} onClick={() => dispatch({
-                  type: "BASKET_REMOVE_PRODUCT",
-                  product: { name, img, id }
-                })}>
-                  Remove
-                </Button>
+        {goods.map(({ name, img, id }) => {
+          console.log(orderList[id], ' have in order ');
+          return (
+            <Grid key={id} item xs={12}>
+              <Grid container spacing={4}>
+                <Grid item xs={1}>
+                  <Checkbox
+                    checked={!!selected[id]}
+                    onChange={e => handleChange(e, { name, img, id })}
+                    inputProps={{ 'aria-label': 'primary checkbox' }}
+                  />
+                </Grid>
+                <Grid item xs={3}>
+                  <Avatar alt="Remy Sharp" src={img} />
+                </Grid>
+                <Grid item xs={3}>
+                  <Typography variant={"h5"}>
+                    {name}
+                  </Typography>
+                </Grid>
+                <Grid item xs={3}>
+                  {orderList[id] && <LinearProgress color="secondary" />}
+                  {!orderList[id] && <Button color={"primary"} variant={"contained"} onClick={() => dispatch({
+                    type: "BASKET_REMOVE_PRODUCT",
+                    product: { name, img, id }
+                  })}>
+                    Remove
+                  </Button>}
+                </Grid>
+                <Grid item xs={2}>
+                  {
+                    !orderList[id] ? (
+                      <Button color={"secondary"} variant={"contained"} onClick={() => {
+                        dispatch({
+                          type: "BASKET_ORDER_PRODUCT_ADD",
+                          product: { name, img, id }
+                        });
+                        dispatch({
+                          type: "BASKET_ORDER_REQUESTED",
+                          order: { name, img, id }
+                        })
+                      }
+                      }>
+                        Order
+                      </Button>) : (<Button color={"secondary"} variant={"contained"} onClick={() => dispatch({
+                      type: "BASKET_ORDER_PRODUCT_REMOVE",
+                      order: { name, img, id }
+                    })}>
+                      Stop process
+                    </Button>)
+                  }
+                </Grid>
               </Grid>
             </Grid>
-          </Grid>
-        ))}
+          )
+        })}
       </Grid>
     </div>
   )
 }
 
-export default connect(null, {})(BasketList);
+export default connect(({ basket } = {}) => ({
+  list: basket?.list || {},
+  orderList: basket?.orderList || {}
+}), {})(BasketList);

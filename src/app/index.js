@@ -71,5 +71,5 @@ function App({ page, basket }) {
 
 export default connect(({ page, basket }) => ({
   page,
-  basket: basket || {}
+  basket: basket?.list || {}
 }))(App);

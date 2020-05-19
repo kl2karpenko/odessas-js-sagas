@@ -5,7 +5,7 @@ import { Grid, Avatar, Typography } from '@material-ui/core';
 
 import ProductsButton from './products-button';
 
-function ProductsList({ list, basket }) {
+function ProductsList({ list, basketList }) {
   if (list.length === 0) return null;
 
   return (
@@ -20,7 +20,7 @@ function ProductsList({ list, basket }) {
               {name}
             </Typography>
 
-            <ProductsButton product={{ name, img, id }} basket={basket} />
+            <ProductsButton product={{ name, img, id }} basket={basketList} />
           </Grid>
         ))}
       </Grid>
@@ -30,5 +30,5 @@ function ProductsList({ list, basket }) {
 
 export default connect(({ products, basket } = {}) => ({
   list: products?.list || [],
-  basket: basket || {}
+  basketList: basket?.list || {}
 }), {})(ProductsList);

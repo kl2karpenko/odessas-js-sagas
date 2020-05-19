@@ -19,12 +19,12 @@ function Basket({ list }) {
   return (
     <Grid container>
       <Grid item xs={12}>
-        <BasketList list={list} />
+        <BasketList />
       </Grid>
     </Grid>
   );
 }
 
 export default connect(({ basket }) => ({
-  list: basket
+  list: basket?.list || {}
 }), {})(Basket);
