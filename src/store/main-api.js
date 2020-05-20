@@ -23,4 +23,15 @@ export default class MainApi{
 
     return req;
   }
+
+  uploader(url, payload, progressHandler) {
+    const source = CancelToken.source();
+    const req = axios.post(url, payload, {
+      cancelToken: source.token,
+      onUploadProgress: progressHandler
+    });
+    req[CANCEL] = () => source.cancel();
+
+    return req;
+  }
 }

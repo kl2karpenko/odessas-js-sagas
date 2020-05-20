@@ -8,4 +8,8 @@ export default class OrderApi extends MainApi {
   createSingleOrder = ({ orderId }) => {
     return this.post(`${this.mainApiRoute}/orders`, { orderId });
   }
+
+  createOrderUploader = ({ orderId }, progressHandler) => {
+    return this.uploader(`${this.mainApiRoute}/orders`, { orderId }, progressHandler);
+  }
 }

@@ -99,7 +99,7 @@ function BasketList({ list, orderList, failedOrders, successOrders }) {
                   </Typography>
                 </Grid>
                 <Grid item xs={3}>
-                  {orderList[id] && <LinearProgress color="secondary" />}
+                  {orderList[id] && <LinearProgress color="secondary" variant="determinate" value={orderList[id].uploadingSize} />}
                 </Grid>
                 <Grid item xs={4}>
                   <BasketButton orderId={id} order={{ name, img, id }} orderList={orderList} failedOrders={failedOrders} successOrders={successOrders} />

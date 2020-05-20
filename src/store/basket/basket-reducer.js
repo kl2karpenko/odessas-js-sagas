@@ -80,6 +80,17 @@ export const basketReducer = function (state = { list: {}, orderList: {}, succes
           [action.orderId]: null
         }
       };
+    case "BASKET_ORDER_PENDING":
+      return {
+        ...state,
+        orderList: {
+          ...state.orderList,
+          [action.orderId]: {
+            ...state.orderList[action.orderId],
+            uploadingSize: action.uploadingSize
+          }
+        }
+      };
     default:
       return state;
   }

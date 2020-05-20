@@ -1,17 +1,8 @@
-import { all, put, call, takeLatest, takeEvery, race, spawn, cancelled, take, fork, delay, cancel } from 'redux-saga/effects';
+import { all, put, call, takeLatest, spawn, take, fork, delay, cancel } from 'redux-saga/effects';
+import { eventChannel, END } from 'redux-saga';
 import BasketAPI from './basket-api';
 
 const basketAPI = new BasketAPI();
-
-function* createOrderBy({ orderId }) {
-  try {
-    yield call(basketAPI.createSingleOrder, { orderId });
-    yield delay(1500);
-    yield put({ type: "BASKET_ORDER_SUCCEEDED", successOrderId: orderId });
-  } catch (e) {
-    yield put({ type: "BASKET_ORDER_FAILED", failedOrderId: orderId });
-  }
-}
 
 function* createOrder({ orderList }) {
   yield all(
@@ -23,6 +14,40 @@ function* createOrder({ orderList }) {
       })
     )
   );
+}
+
+function createWaitingOrder(orderId) {
+  // number of processing callbacks to be skipped to decrease unnecessary redux state updates
+  const skipRequestCbs = 5;
+  let counter = 0;
+  let emit;
+  const uploadStartTime = Date.now();
+  const channel = eventChannel(emitter => {
+    emit = emitter;
+    return () => {};
+  });
+  const uploadProgressCb = ({ total, loaded }) => {
+    const newDate = Date.now();
+    const uploadingSpeed = loaded / ((newDate - uploadStartTime) / 1000);
+    const uploadingTimeLeft =
+      uploadingSpeed && (total - loaded) / uploadingSpeed;
+
+    if (total - loaded === 0 || counter % skipRequestCbs === 0) {
+      emit({
+        orderId,
+        uploadingSize: loaded,
+        uploadingTimeLeft
+      });
+    }
+
+    if (total === loaded) emit(END);
+    counter += 1;
+  };
+  const uploadPromise = basketAPI.createOrderUploader(
+    { orderId },
+    uploadProgressCb
+  );
+  return [uploadPromise, channel];
 }
 
 function* handleOrderProduct(requests, orderProduct) {
@@ -48,7 +73,6 @@ function* handleOrderProduct(requests, orderProduct) {
     }
     case "BASKET_ORDER_SUCCEEDED": {
       requests.delete(successOrderId);
-      console.log(requests, ' requests after delete ');
       break;
     }
     case "BASKET_ORDER_FAILED": {
@@ -57,6 +81,32 @@ function* handleOrderProduct(requests, orderProduct) {
     }
     default:
       break;
+  }
+}
+
+function* watchUploadProgress(channel) {
+  while (true) {
+    const { orderId, uploadingSize } = yield take(channel);
+    yield put({
+      type: "BASKET_ORDER_PENDING",
+      uploadingSize,
+      orderId
+    });
+  }
+}
+
+function* createOrderBy({ orderId }) {
+  try {
+    const [uploadPromise, channel] = yield call(
+      createWaitingOrder,
+      orderId
+    );
+    yield fork(watchUploadProgress, channel);
+    yield call(() => uploadPromise);
+    yield delay(1500);
+    yield put({ type: "BASKET_ORDER_SUCCEEDED", successOrderId: orderId });
+  } catch (e) {
+    yield put({ type: "BASKET_ORDER_FAILED", failedOrderId: orderId });
   }
 }
 
