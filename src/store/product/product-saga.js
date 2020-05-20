@@ -5,7 +5,7 @@ const productAPI = new ProductApi();
 
 function* fetchAllProducts() {
   try {
-    const stores = yield call(productAPI.getAllProducts);
+    const { data: stores } = yield call(productAPI.getAllProducts);
     yield put({ type: "PRODUCTS_FETCH_SUCCEEDED", list: stores });
   } catch (e) {
     yield put({ type: "PRODUCTS_FETCH_FAILED", message: e.message});

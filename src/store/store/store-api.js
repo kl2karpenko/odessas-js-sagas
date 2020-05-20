@@ -2,6 +2,6 @@ import MainApi from '../main-api';
 
 export default class StoreApi extends MainApi {
   getAllShops = () => {
-    return fetch(`${this.mainApiRoute}/shops`).then(res => res.json()).catch(console.error)
+    return this.get(`${this.mainApiRoute}/shops`);
   }
 }

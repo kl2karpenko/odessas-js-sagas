@@ -1,7 +1,4 @@
-const initialState = { list: {}, orderList: {}, successOrders: {}, failedOrders: {} };
-
-export const basketReducer = function (state = initialState, action) {
-  let newState = {};
+export const basketReducer = function (state = { list: {}, orderList: {}, successOrders: {}, failedOrders: {} }, action) {
   switch (action.type) {
     case "BASKET_ADD_PRODUCT":
       return {
@@ -12,47 +9,77 @@ export const basketReducer = function (state = initialState, action) {
         }
       };
     case "BASKET_REMOVE_PRODUCT":
-      newState = {...state};
-      delete newState.list[action.product.id];
-      return newState;
-    case "BASKET_ORDER_PRODUCT_ADD":
+      return {
+        ...state,
+        list: {
+          ...state.list,
+          [action.product.id]: null
+        }
+      };
+    case "BASKET_ORDER_REQUESTED":
       return {
         ...state,
         orderList: {
           ...state.orderList,
-          [action.product.id]: action.product
+          [action.orderId]: action.order
         }
       };
     case "BASKET_ORDER_PRODUCT_REMOVE":
-      newState = {...state};
-      delete newState.orderList[action.order.id];
-      return newState;
-    case "BASKET_ORDER_PRODUCTS_START":
-      newState = {...state};
-      newState.orderList = action.orderList;
-      return newState;
+      return {
+        ...state,
+        orderList: {
+          ...state.orderList,
+          [action.order.id]: null
+        }
+      }
     case "BASKET_ORDERS_SUCCEEDED":
-      newState = {...state};
-      newState.successOrders = action.successOrders;
-      return newState;
+      return {
+        ...state,
+        successOrders: action.successOrders,
+        orderList: {}
+      };
     case "BASKET_ORDERS_FAILED":
-      newState = {...state};
-      newState.failedOrders = action.failedOrders;
-      return newState;
+      return {
+        ...state,
+        failedOrders: action.failedOrders,
+        orderList: {}
+      };
     case "BASKET_ORDER_SUCCEEDED":
-      newState = {...state};
-      newState.successOrders = {
-        ...newState.successOrders,
-        [action.successOrder.id]: action.successOrder
+      return {
+        ...state,
+        successOrders: {
+          ...state.successOrders,
+          [action.successOrderId]: state.orderList[action.successOrderId]
+        },
+        orderList: {
+          ...state.orderList,
+          [action.successOrderId]: null
+        }
       };
-      return newState;
     case "BASKET_ORDER_FAILED":
-      newState = {...state};
-      newState.failedOrders = {
-        ...newState.failedOrders,
-        [action.failedOrder.id]: action.failedOrder
+      return {
+        ...state,
+        failedOrders: {
+          ...state.failedOrders,
+          [action.failedOrderId]: state.orderList[action.failedOrderId]
+        },
+        orderList: {
+          ...state.orderList,
+          [action.failedOrderId]: null
+        }
       };
-      return newState;
+    case "BASKET_ORDER_CANCELED":
+      return {
+        ...state,
+        canceledOrders: {
+          ...state.canceledOrders,
+          [action.orderId]: state.orderList[action.orderId]
+        },
+        orderList: {
+          ...state.orderList,
+          [action.orderId]: null
+        }
+      };
     default:
       return state;
   }

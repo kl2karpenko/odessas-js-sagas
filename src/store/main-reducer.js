@@ -12,7 +12,7 @@ export const initialState = {
   products: {
     list: []
   },
-  basket: {},
+  basket: { list: {}, orderList: {}, successOrders: {}, failedOrders: {} },
   page: null
 };
 

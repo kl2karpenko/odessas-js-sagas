@@ -1,11 +1,12 @@
 import React  from 'react';
-import {connect} from 'react-redux';
+import {connect, useSelector} from 'react-redux';
 
 import { Grid, Avatar, Typography } from '@material-ui/core';
 
 import ProductsButton from './products-button';
 
-function ProductsList({ list, basketList }) {
+function ProductsList() {
+  const list = useSelector(state => state.products?.list || [])
   if (list.length === 0) return null;
 
   return (
@@ -20,7 +21,7 @@ function ProductsList({ list, basketList }) {
               {name}
             </Typography>
 
-            <ProductsButton product={{ name, img, id }} basket={basketList} />
+            <ProductsButton product={{ name, img, id }} />
           </Grid>
         ))}
       </Grid>
@@ -28,7 +29,4 @@ function ProductsList({ list, basketList }) {
   )
 }
 
-export default connect(({ products, basket } = {}) => ({
-  list: products?.list || [],
-  basketList: basket?.list || {}
-}), {})(ProductsList);
+export default ProductsList;

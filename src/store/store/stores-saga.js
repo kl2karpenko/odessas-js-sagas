@@ -5,7 +5,7 @@ const storeAPI = new StoreApi();
 
 function* fetchAllStores() {
   try {
-    const stores = yield call(storeAPI.getAllShops);
+    const { data: stores } = yield call(storeAPI.getAllShops);
     yield put({ type: "STORES_FETCH_SUCCEEDED", list: stores });
   } catch (e) {
     yield put({ type: "STORES_FETCH_FAILED", message: e.message});
