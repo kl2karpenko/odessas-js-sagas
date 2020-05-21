@@ -16,40 +16,6 @@ function* createOrder({ orderList }) {
   );
 }
 
-function createWaitingOrder(orderId) {
-  // number of processing callbacks to be skipped to decrease unnecessary redux state updates
-  const skipRequestCbs = 5;
-  let counter = 0;
-  let emit;
-  const uploadStartTime = Date.now();
-  const channel = eventChannel(emitter => {
-    emit = emitter;
-    return () => {};
-  });
-  const uploadProgressCb = ({ total, loaded }) => {
-    const newDate = Date.now();
-    const uploadingSpeed = loaded / ((newDate - uploadStartTime) / 1000);
-    const uploadingTimeLeft =
-      uploadingSpeed && (total - loaded) / uploadingSpeed;
-
-    if (total - loaded === 0 || counter % skipRequestCbs === 0) {
-      emit({
-        orderId,
-        uploadingSize: loaded,
-        uploadingTimeLeft
-      });
-    }
-
-    if (total === loaded) emit(END);
-    counter += 1;
-  };
-  const uploadPromise = basketAPI.createOrderUploader(
-    { orderId },
-    uploadProgressCb
-  );
-  return [uploadPromise, channel];
-}
-
 function* handleOrderProduct(requests, orderProduct) {
   const { type, orderId, failedOrderId, successOrderId  } = yield take([
     'BASKET_ORDER_CANCELED',
@@ -93,6 +59,33 @@ function* watchUploadProgress(channel) {
       orderId
     });
   }
+}
+
+function createWaitingOrder(orderId) {
+  // number of processing callbacks to be skipped to decrease unnecessary redux state updates
+  const skipRequestCbs = 5;
+  let counter = 0;
+  let emit;
+  const channel = eventChannel(emitter => {
+    emit = emitter;
+    return () => {};
+  });
+  const uploadProgressCb = ({ total, loaded }) => {
+    if (total - loaded === 0 || counter % skipRequestCbs === 0) {
+      emit({
+        orderId,
+        uploadingSize: loaded
+      });
+    }
+
+    if (total === loaded) emit(END);
+    counter += 1;
+  };
+  const uploadPromise = basketAPI.createOrderUploader(
+    { orderId },
+    uploadProgressCb
+  );
+  return [uploadPromise, channel];
 }
 
 function* createOrderBy({ orderId }) {
