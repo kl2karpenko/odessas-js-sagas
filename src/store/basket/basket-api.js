@@ -10,6 +10,6 @@ export default class OrderApi extends MainApi {
   }
 
   createOrderUploader = ({ orderId }, progressHandler) => {
-    return this.uploader(`${this.mainApiRoute}/orders`, { orderId }, progressHandler);
+    return this.post(`${this.mainApiRoute}/orders`, { orderId });
   }
 }

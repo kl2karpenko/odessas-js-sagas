@@ -1,22 +1,10 @@
-import { all, put, call, takeLatest, spawn, take, fork, delay, cancel } from 'redux-saga/effects';
-import { eventChannel, END } from 'redux-saga';
+import { all, put, call, take, fork, delay, cancel, actionChannel } from 'redux-saga/effects';
+import { channel } from 'redux-saga';
 import BasketAPI from './basket-api';
 
 const basketAPI = new BasketAPI();
 
-function* createOrder({ orderList }) {
-  yield all(
-    Object.keys(orderList).map(
-      orderId => put({
-        type: "BASKET_ORDER_REQUESTED",
-        orderId,
-        order: orderList[orderId]
-      })
-    )
-  );
-}
-
-function* handleOrderProduct(requests, orderProduct) {
+function* handleOrderProduct(requests) {
   const { type, orderId, failedOrderId, successOrderId  } = yield take([
     'BASKET_ORDER_CANCELED',
     'BASKET_ORDER_SUCCEEDED',
@@ -33,8 +21,6 @@ function* handleOrderProduct(requests, orderProduct) {
         yield all([...requests.values()].map(request => cancel(request)));
         requests.clear();
       }
-      // canceling the event by hands
-      yield cancel(orderProduct);
       break;
     }
     case "BASKET_ORDER_SUCCEEDED": {
@@ -50,52 +36,9 @@ function* handleOrderProduct(requests, orderProduct) {
   }
 }
 
-function* watchUploadProgress(channel) {
-  while (true) {
-    const { orderId, uploadingSize } = yield take(channel);
-    yield put({
-      type: "BASKET_ORDER_PENDING",
-      uploadingSize,
-      orderId
-    });
-  }
-}
-
-function createWaitingOrder(orderId) {
-  // number of processing callbacks to be skipped to decrease unnecessary redux state updates
-  const skipRequestCbs = 5;
-  let counter = 0;
-  let emit;
-  const channel = eventChannel(emitter => {
-    emit = emitter;
-    return () => {};
-  });
-  const uploadProgressCb = ({ total, loaded }) => {
-    if (total - loaded === 0 || counter % skipRequestCbs === 0) {
-      emit({
-        orderId,
-        uploadingSize: loaded
-      });
-    }
-
-    if (total === loaded) emit(END);
-    counter += 1;
-  };
-  const uploadPromise = basketAPI.createOrderUploader(
-    { orderId },
-    uploadProgressCb
-  );
-  return [uploadPromise, channel];
-}
-
 function* createOrderBy({ orderId }) {
   try {
-    const [uploadPromise, channel] = yield call(
-      createWaitingOrder,
-      orderId
-    );
-    yield fork(watchUploadProgress, channel);
-    yield call(() => uploadPromise);
+    yield fork(basketAPI.createOrderUploader, { orderId });
     yield delay(1500);
     yield put({ type: "BASKET_ORDER_SUCCEEDED", successOrderId: orderId });
   } catch (e) {
@@ -103,34 +46,54 @@ function* createOrderBy({ orderId }) {
   }
 }
 
-function* watchCreateOrder() {
+function* createSingleOrder(channel) {
   const requests = new Map();
 
   while (true) {
-    const orderProduct = yield fork(function* upload() {
-      while (true) {
-        const { orderId } = yield take('BASKET_ORDER_REQUESTED');
-        const request = yield spawn(createOrderBy, { orderId });
-        const prev = requests.get(orderId);
-        if (prev) {
-          requests.delete(orderId);
-          yield cancel(prev);
-        }
-        requests.set(orderId, request);
-      }
-    });
+    const { orderId } = yield take(channel);
+    const request = yield fork(createOrderBy, { orderId });
+    const prev = requests.get(orderId);
+    if (prev) {
+      requests.delete(orderId);
+      yield cancel(prev);
+    }
+    requests.set(orderId, request);
 
-    yield call(handleOrderProduct, requests, orderProduct);
+    yield call(handleOrderProduct, requests);
+  }
+}
+
+function* watchQueuedOrders() {
+  // create a channel to queue incoming requests
+  const chan = yield call(channel)
+
+  // create 3 worker 'threads'
+  for (var i = 0; i < 3; i++) {
+    yield fork(createSingleOrder, chan)
+  }
+
+  while (true) {
+    const { orderId } = yield take('BASKET_ORDER_REQUESTED')
+    yield put(chan, { orderId });
   }
 }
 
 export function* watchCreateOrderAll() {
-  yield takeLatest("BASKET_ORDERS_REQUESTED", createOrder);
+  while (true) {
+    const { orderList } = yield take('BASKET_ORDERS_REQUESTED');
+
+    for (const orderId of Object.keys(orderList)) {
+      yield put({
+        type: "BASKET_ORDER_REQUESTED",
+        orderId
+      });
+    }
+  }
 }
 
 const basketSaga = [
   fork(watchCreateOrderAll),
-  fork(watchCreateOrder),
+  fork(watchQueuedOrders),
 ];
 
 export default basketSaga;
