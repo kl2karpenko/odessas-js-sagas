@@ -54,7 +54,7 @@ function BasketButton({ orderId, orderList, order, failedOrders, successOrders }
     <Grid container spacing={4}>
       <Grid item>
         <Button color={"secondary"} variant={"contained"} onClick={() => dispatch({
-          type: "BASKET_ORDER_CANCELED",
+          type: `BASKET_ORDER_CANCELED_${orderId}`,
           orderId: orderId
         })}
         >

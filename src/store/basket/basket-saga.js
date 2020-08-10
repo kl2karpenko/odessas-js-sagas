@@ -2,64 +2,58 @@ import { all, put, call, take, fork, delay, cancel, actionChannel } from 'redux-
 import { channel } from 'redux-saga';
 import BasketAPI from './basket-api';
 
-const basketAPI = new BasketAPI();
+const basketAPI = new BasketAPI()
 
-function* handleOrderProduct(requests) {
-  const { type, orderId, failedOrderId, successOrderId  } = yield take([
-    'BASKET_ORDER_CANCELED',
-    'BASKET_ORDER_SUCCEEDED',
-    'BASKET_ORDER_FAILED'
+function* createOrderBy({ orderId }) {
+  try {
+    yield fork(basketAPI.createOrderUploader, { orderId });
+    yield put({ type: "BASKET_ORDER_SUCCEEDED_" + orderId, successOrderId: orderId });
+  } catch (e) {
+    yield put({ type: "BASKET_ORDER_FAILED_" + orderId, failedOrderId: orderId });
+  }
+}
+
+function* createOrder({ orderId }) {
+  const request = yield fork(createOrderBy, { orderId });
+  const CANCEL_ACTION = `BASKET_ORDER_CANCELED_${orderId}`;
+  const SUCCESS_ACTION = `BASKET_ORDER_SUCCEEDED_${orderId}`;
+  const FAILED_ACTION = `BASKET_ORDER_FAILED_${orderId}`;
+  const { type, successOrderId, failedOrderId } = yield take([
+    `BASKET_ORDER_CANCELED_${orderId}`,
+    `BASKET_ORDER_SUCCEEDED_${orderId}`,
+    `BASKET_ORDER_FAILED_${orderId}`
   ]);
 
-  switch (type) {
-    case "BASKET_ORDER_CANCELED": {
-      const request = requests.get(orderId);
-      if (orderId && request) {
-        yield cancel(request);
-        requests.delete(orderId);
-      } else if (!orderId) {
-        yield all([...requests.values()].map(request => cancel(request)));
-        requests.clear();
-      }
+  switch(type) {
+    case CANCEL_ACTION:
+      request.cancel();
+      yield cancel(request);
+      yield put({
+        type: 'BASKET_ORDER_CANCELED',
+        orderId
+      });
       break;
-    }
-    case "BASKET_ORDER_SUCCEEDED": {
-      requests.delete(successOrderId);
+    case SUCCESS_ACTION:
+      yield put({
+        type: 'BASKET_ORDER_SUCCEEDED',
+        successOrderId
+      });
       break;
-    }
-    case "BASKET_ORDER_FAILED": {
-      requests.delete(failedOrderId);
+    case FAILED_ACTION:
+      yield put({
+        type: 'BASKET_ORDER_FAILED',
+        failedOrderId
+      });
       break;
-    }
     default:
       break;
   }
 }
 
-function* createOrderBy({ orderId }) {
-  try {
-    yield fork(basketAPI.createOrderUploader, { orderId });
-    yield delay(1500);
-    yield put({ type: "BASKET_ORDER_SUCCEEDED", successOrderId: orderId });
-  } catch (e) {
-    yield put({ type: "BASKET_ORDER_FAILED", failedOrderId: orderId });
-  }
-}
-
 function* createSingleOrder(channel) {
-  const requests = new Map();
-
   while (true) {
     const { orderId } = yield take(channel);
-    const request = yield fork(createOrderBy, { orderId });
-    const prev = requests.get(orderId);
-    if (prev) {
-      requests.delete(orderId);
-      yield cancel(prev);
-    }
-    requests.set(orderId, request);
-
-    yield call(handleOrderProduct, requests);
+    yield call(createOrder, { orderId });
   }
 }
 

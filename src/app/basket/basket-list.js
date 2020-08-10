@@ -14,7 +14,7 @@ import BasketButton from './basket-button';
 
 function BasketList({ list, orderList, failedOrders, successOrders }) {
   const dispatch = useDispatch();
-  const goods = Object.values(list);
+  const goods = Object.values(list) || [];
   const [selected, setSelected] = useState({});
 
   if (Object.keys(list).length === 0) return null;
